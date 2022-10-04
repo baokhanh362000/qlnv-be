@@ -1,5 +1,5 @@
 /**
- * BKAuthController
+ * TDAuthController
  *
  * @description :: Server-side actions for handling incoming requests.
  * @help        :: See https://sailsjs.com/docs/concepts/actions
@@ -15,7 +15,7 @@ module.exports = {
   getCaptcha: async (req, res) => {
     try {
       const captcha = svgCaptcha.create();
-      await BKCaptcha.create({
+      await TDCaptcha.create({
         text: captcha.text,
         expAt: moment().valueOf() + 5 * 60 * 1000,
       });
@@ -33,7 +33,7 @@ module.exports = {
         return res.error({
           errorMsg: "Username or email required",
         });
-      const access = await BKCustomer.find({
+      const access = await TDCustomer.find({
         or: [{ email }, { username }],
       });
       if (access.lenght) {
@@ -43,13 +43,13 @@ module.exports = {
       }
 
       const hash = await argon2.hash(password);
-      const auth = await BKAuth.create({ username, password: hash }).fetch();
-      const customer = await BKCustomer.create({
+      const auth = await TDAuth.create({ username, password: hash }).fetch();
+      const customer = await TDCustomer.create({
         username,
         email,
         auth: auth.id,
       }).fetch();
-      await BKAuth.update({ id: auth.id }).set({ user: customer.id });
+      await TDAuth.update({ id: auth.id }).set({ user: customer.id });
       return res.success();
     } catch (error) {
       res.serverError();
@@ -59,7 +59,7 @@ module.exports = {
     try {
       const { username, password, captcha } = req.body;
       if (!captcha) return res.error("Wrong capcha");
-      const checkCaptcha = await BKCaptcha.find({
+      const checkCaptcha = await TDCaptcha.find({
         where: {
           text: captcha,
           expAt: {
@@ -68,16 +68,16 @@ module.exports = {
         },
       });
       if (!checkCaptcha.length) return res.error("Wrong capcha");
-      const auth = await BKAuth.findOne({ username });
+      const auth = await TDAuth.findOne({ username });
       const loginFailMsg = "Username or password is wrong";
       if (!auth) return res.error(loginFailMsg);
       const checkPass = await argon2.verify(auth.password, password);
       if (!checkPass) return res.error(loginFailMsg);
       let user = {};
       if (auth.site == "admin") {
-        user = await BKUser.findOne({ id: auth.user });
+        user = await TDUser.findOne({ id: auth.user });
       } else {
-        user = await BKCustomer.findOne({ id: auth.user });
+        user = await TDCustomer.findOne({ id: auth.user });
       }
       if (!user?.status) return res.error("This account is blocking");
       const accessToken = jwt.sign(
@@ -89,10 +89,10 @@ module.exports = {
         { expiresIn: "10h" }
       );
       const refreshToken = randtoken.generate(16);
-      if (await BKToken.findOne({ user: user.id })) {
-        await BKToken.update({ user: user.id }).set({ token: refreshToken });
+      if (await TDToken.findOne({ user: user.id })) {
+        await TDToken.update({ user: user.id }).set({ token: refreshToken });
       } else {
-        await BKToken.create({
+        await TDToken.create({
           token: refreshToken,
           user: user.id,
         });
@@ -110,11 +110,11 @@ module.exports = {
     try {
       const { email } = req.body;
       if (!email) return res.error("Invalid email");
-      const user = await BKCustomer.findOne({ email });
+      const user = await TDCustomer.findOne({ email });
       if (!user) return res.error("Invalid email");
       const newPassword = randtoken.generate(16);
       const hashPassword = await argon2.hash(newPassword);
-      await BKAuth.update({ user: user.id }).set({ password: hashPassword });
+      await TDAuth.update({ user: user.id }).set({ password: hashPassword });
       await sendmail({
         email,
         subject: "Forgot password",
@@ -130,11 +130,11 @@ module.exports = {
     try {
       const { userId, password, newPassword } = req.body;
       if (!userId) res.error();
-      const acc = await BKAuth.findOne({ user: userId });
+      const acc = await TDAuth.findOne({ user: userId });
       const checkPass = await argon2.verify(acc.password, password);
       if (!checkPass) return res.error("Password is wrong");
       const hashNewPass = await argon2.hash(newPassword);
-      await BKAuth.update({ user: userId }).set({
+      await TDAuth.update({ user: userId }).set({
         password: hashNewPass,
       });
       return res.success();

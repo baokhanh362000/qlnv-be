@@ -1,5 +1,5 @@
 /**
- * BKUserController
+ * TDUserController
  *
  * @description :: Server-side actions for handling incoming requests.
  * @help        :: See https://sailsjs.com/docs/concepts/actions
@@ -12,10 +12,10 @@ module.exports = {
   activeSurvey: async (req, res) => {
     try {
       const { id } = req.body;
-      const survey = await BKSurvey.findOne({ id });
+      const survey = await TDSurvey.findOne({ id });
       if (!survey) return res.error();
       const customersId = survey.customer;
-      const customers = await BKCustomer.find({ id: customersId });
+      const customers = await TDCustomer.find({ id: customersId });
       const sendMsg = new Queue("sendMsg", sails.config.custom.redis);
       sendMsg.process(function (job) {
         sendmail(job.data);
@@ -28,7 +28,7 @@ module.exports = {
           html: `<b>survey.title</b> Please click link http://localhost:3000/survey?id=${survey.id}&cutomer=${customer.id}`,
         });
       }
-      await BKSurvey.update({ id }).set({
+      await TDSurvey.update({ id }).set({
         status: true,
         exp: moment().valueOf() + 30 * 60 * 1000,
       });
@@ -40,7 +40,7 @@ module.exports = {
   getSurvey: async (req, res) => {
     try {
       const { id, customerId } = req.body;
-      const survey = await BKSurvey.find({
+      const survey = await TDSurvey.find({
         where: {
           id,
           customer: {
@@ -64,7 +64,7 @@ module.exports = {
   postSurvey: async (req, res) => {
     try {
       const { id, customer } = req.body;
-      const survey = await BKSurvey.find({
+      const survey = await TDSurvey.find({
         where: {
           id,
           customer: {
@@ -76,17 +76,17 @@ module.exports = {
         },
       });
       if (!survey.length) return res.error();
-      const surveydata = await BKSurveyData.find({
+      const surveydata = await TDSurveyData.find({
         survey: id,
         customer,
       });
       if (surveydata.length) return res.error();
-      await BKSurveyData.create({
+      await TDSurveyData.create({
         survey: id,
         customer,
       });
-      const customerInfo = await BKCustomer.findOne({ id: customer });
-      await BKCustomer.update({ id: customer }).set({
+      const customerInfo = await TDCustomer.findOne({ id: customer });
+      await TDCustomer.update({ id: customer }).set({
         pocket: customerInfo.pocket + Number(survey[0].price),
       });
       return res.success();

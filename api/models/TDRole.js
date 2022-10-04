@@ -10,7 +10,7 @@ module.exports = {
     name: { type: "string", required: true, unique: true },
     apis: { type: "json" },
     user: {
-      collection: "bkuser",
+      collection: "tduser",
       via: "role",
     },
   },

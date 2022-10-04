@@ -10,11 +10,14 @@ module.exports = {
     username: { type: "string", required: true, unique: true },
     email: { type: "string", required: true },
     status: { type: "boolean", defaultsTo: true },
-    role: { model: "bkrole" },
+    site: {
+      type: "string",
+      isIn: ["admin", "employee"],
+      defaultsTo: "employee",
+    },
+    role: { model: "tdrole" },
     phone: { type: "string" },
-    address: { type: "string" },
     desc: { type: "string" },
-    pocket: { type: "number", defaultsTo: 0 },
     auth: { type: "string", required: true },
   },
 };
